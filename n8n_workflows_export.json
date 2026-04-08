@@ -1,0 +1,1044 @@
+{
+  "exported_at": "2026-03-30T18:59:41.497062",
+  "source": "Windows n8n",
+  "workflow_count": 7,
+  "workflows": [
+    {
+      "id": "az900sched001",
+      "name": "AZ-900 Scheduler",
+      "description": null,
+      "active": true,
+      "nodes": [
+        {
+          "parameters": {
+            "httpMethod": "POST",
+            "path": "az900-lesson",
+            "responseMode": "onReceived",
+            "options": {}
+          },
+          "id": "az900-sched-01",
+          "name": "Lesson Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "typeVersion": 2,
+          "position": [
+            200,
+            300
+          ],
+          "webhookId": "az900-lesson-webhook"
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "http://127.0.0.1:5901/lesson",
+            "options": {
+              "timeout": 300000
+            }
+          },
+          "id": "az900-sched-02",
+          "name": "Run Lesson",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [
+            440,
+            300
+          ]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": false,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "cond-lesson-sent",
+                  "leftValue": "={{ $json.lesson_sent }}",
+                  "rightValue": true,
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true",
+                    "name": "filter.operator.true"
+                  }
+                }
+              ],
+              "combinator": "and"
+            },
+            "options": {}
+          },
+          "id": "az900-sched-03",
+          "name": "Lesson Sent?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [
+            680,
+            300
+          ]
+        },
+        {
+          "parameters": {
+            "resume": "timeInterval",
+            "unit": "minutes",
+            "amount": 5
+          },
+          "id": "az900-sched-04",
+          "name": "Wait 5 Min",
+          "type": "n8n-nodes-base.wait",
+          "typeVersion": 1.1,
+          "position": [
+            920,
+            240
+          ],
+          "webhookId": "az900-wait-5min"
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "http://127.0.0.1:5901/quiz",
+            "options": {
+              "timeout": 300000
+            }
+          },
+          "id": "az900-sched-05",
+          "name": "Run Quiz",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [
+            1160,
+            240
+          ]
+        }
+      ],
+      "connections": {
+        "Lesson Webhook": {
+          "main": [
+            [
+              {
+                "node": "Run Lesson",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Run Lesson": {
+          "main": [
+            [
+              {
+                "node": "Lesson Sent?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Lesson Sent?": {
+          "main": [
+            [
+              {
+                "node": "Wait 5 Min",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            []
+          ]
+        },
+        "Wait 5 Min": {
+          "main": [
+            [
+              {
+                "node": "Run Quiz",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1",
+        "saveManualExecutions": true
+      },
+      "pinData": {},
+      "createdAt": "2026-03-26 14:40:36.458",
+      "updatedAt": "2026-03-26 14:40:36.458"
+    },
+    {
+      "id": "az900answ001",
+      "name": "AZ-900 Answer Handler",
+      "description": null,
+      "active": false,
+      "nodes": [
+        {
+          "parameters": {
+            "updates": [
+              "message",
+              "callback_query"
+            ],
+            "additionalFields": {}
+          },
+          "id": "az900-ans-01",
+          "name": "Telegram Trigger",
+          "type": "n8n-nodes-base.telegramTrigger",
+          "typeVersion": 1.1,
+          "position": [
+            200,
+            300
+          ],
+          "webhookId": "az900-tg-trigger",
+          "credentials": {
+            "telegramApi": {
+              "id": "az900tgbot1",
+              "name": "AZ900 Telegram Bot"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "jsCode": "const update = $input.first().json;\n\nlet text = '';\nlet chatId = '';\n\nif (update.message) {\n  text = (update.message.text || '').trim();\n  chatId = String(update.message.chat.id);\n} else if (update.callback_query) {\n  text = (update.callback_query.data || '').trim();\n  chatId = String(update.callback_query.message.chat.id);\n}\n\nif (chatId !== '7874220687') return [];\nif (!text) return [];\n\nreturn [{ json: { text, chatId } }];"
+          },
+          "id": "az900-ans-02",
+          "name": "Extract Message",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            440,
+            300
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "http://127.0.0.1:5901/route",
+            "sendBody": true,
+            "contentType": "json",
+            "body": "={{ JSON.stringify({ text: $json.text }) }}",
+            "options": {
+              "timeout": 650000
+            }
+          },
+          "id": "az900-ans-03",
+          "name": "Route Message",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [
+            680,
+            300
+          ]
+        },
+        {
+          "parameters": {
+            "conditions": {
+              "options": {
+                "caseSensitive": true,
+                "leftValue": "",
+                "typeValidation": "strict"
+              },
+              "conditions": [
+                {
+                  "id": "cond-has-output",
+                  "leftValue": "={{ $json.output }}",
+                  "rightValue": "",
+                  "operator": {
+                    "type": "string",
+                    "operation": "notEmpty",
+                    "name": "filter.operator.notEmpty"
+                  }
+                }
+              ],
+              "combinator": "and"
+            },
+            "options": {}
+          },
+          "id": "az900-ans-04",
+          "name": "Has Response?",
+          "type": "n8n-nodes-base.if",
+          "typeVersion": 2,
+          "position": [
+            920,
+            300
+          ]
+        },
+        {
+          "parameters": {
+            "chatId": "7874220687",
+            "text": "={{ $json.output }}",
+            "additionalFields": {}
+          },
+          "id": "az900-ans-05",
+          "name": "Send to Telegram",
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "position": [
+            1160,
+            240
+          ],
+          "credentials": {
+            "telegramApi": {
+              "id": "az900tgbot1",
+              "name": "AZ900 Telegram Bot"
+            }
+          }
+        }
+      ],
+      "connections": {
+        "Telegram Trigger": {
+          "main": [
+            [
+              {
+                "node": "Extract Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extract Message": {
+          "main": [
+            [
+              {
+                "node": "Route Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Route Message": {
+          "main": [
+            [
+              {
+                "node": "Has Response?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Has Response?": {
+          "main": [
+            [
+              {
+                "node": "Send to Telegram",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            []
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1",
+        "saveManualExecutions": true
+      },
+      "pinData": {},
+      "createdAt": "2026-03-26 14:40:38.846",
+      "updatedAt": "2026-03-26 14:51:22"
+    },
+    {
+      "id": "az900summ001",
+      "name": "AZ-900 Daily Summary",
+      "description": null,
+      "active": true,
+      "nodes": [
+        {
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "expression": "0 1 * * *"
+                }
+              ]
+            }
+          },
+          "id": "az900-summ-01",
+          "name": "7pm CST Daily",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "position": [
+            200,
+            300
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "http://127.0.0.1:5901/summary",
+            "options": {
+              "timeout": 30000
+            }
+          },
+          "id": "az900-summ-02",
+          "name": "Send Summary",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [
+            440,
+            300
+          ]
+        }
+      ],
+      "connections": {
+        "7pm CST Daily": {
+          "main": [
+            [
+              {
+                "node": "Send Summary",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1"
+      },
+      "pinData": {},
+      "createdAt": "2026-03-27 01:43:36.812",
+      "updatedAt": "2026-03-27 01:43:36.812"
+    },
+    {
+      "id": "unEOGVHOjg45wY6u",
+      "name": "Nellis Auction Auto-Favorite",
+      "description": null,
+      "active": true,
+      "nodes": [
+        {
+          "id": "aa001",
+          "name": "Daily 5:30PM Trigger",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "position": [
+            200,
+            300
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "expression": "30 17 * * *"
+                }
+              ]
+            },
+            "options": {
+              "timezone": "America/Chicago"
+            }
+          }
+        },
+        {
+          "id": "aa002",
+          "name": "Load Config",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            420,
+            300
+          ],
+          "parameters": {
+            "jsCode": "\n// Trigger: just pass a single item to start the chain\nreturn [{ json: { triggered: true } }];\n",
+            "mode": "runOnceForAllItems"
+          }
+        },
+        {
+          "id": "aa004",
+          "name": "Search & Filter",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            860,
+            300
+          ],
+          "parameters": {
+            "jsCode": "\nconst fs            = require('fs');\nconst { spawnSync } = require('child_process');\nconst os            = require('os');\nconst path          = require('path');\n\nconst CONFIG_PATH = 'C:\\\\Users\\\\RAGU\\\\nellis_data\\\\config.json';\nconst STATE_PATH  = 'C:\\\\Users\\\\RAGU\\\\nellis_data\\\\state.json';\nconst TMP_FILE    = path.join(os.tmpdir(), 'nellis_n8n_items.json');\n\nconst cfg     = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));\nconst state   = fs.existsSync(STATE_PATH) ? JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')) : { favorited: {}, removed_ids: [] };\nconst already = new Set(Object.keys(state.favorited || {}));\nconst removed = new Set(state.removed_ids || []);\nconst searches = cfg.searches || [];\n\nif (!searches.length) return [{ json: { newItems: [], newCount: 0, totalFound: 0, searchCount: 0, tmpFile: TMP_FILE, statePath: STATE_PATH } }];\n\nfunction titleWords(str) {\n  return str.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);\n}\nfunction wordMatch(sw, tw) {\n  if (sw === tw) return true;\n  if (Math.min(sw.length, tw.length) < 4) return false;\n  return tw.startsWith(sw) || sw.startsWith(tw);\n}\nfunction matchesKeyword(title, keyword) {\n  const sWords = keyword.toLowerCase().split(/\\s+/).filter(Boolean);\n  if (sWords.length === 0) return false;\n  const tWords = titleWords(title);\n  return sWords.every(sw => tWords.some(tw => wordMatch(sw, tw)));\n}\nfunction decodeHtml(str) {\n  return str\n    .replace(/&amp;/g, '&').replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\").replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ');\n}\n\nconst seen     = new Set();\nconst newItems = [];\nlet totalFound = 0;\n\nfor (const s of searches) {\n  const keywords = s.keywords || '';\n  if (!keywords) continue;\n\n  const url = 'https://www.nellisauction.com/search?query=' + encodeURIComponent(keywords) ;\n  let html = '';\n  try {\n    // Step 1: get session cookie\n    const cookieFile = path.join(os.tmpdir(), 'nellis_cookies.txt');\n    spawnSync('curl', ['-s', '-c', cookieFile, '-o', 'NUL', '-A', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'https://www.nellisauction.com/'], { timeout: 15000 });\n    // Step 2: POST Dallas location (id=8)\n    spawnSync('curl', ['-s', '-b', cookieFile, '-c', cookieFile, '-X', 'POST', '-d', 'shoppingLocationId=8&referrer=/search', '-o', 'NUL', '-A', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'https://www.nellisauction.com/change-shopping-location'], { timeout: 15000 });\n    // Step 3: Search with Dallas cookie\n    const cr = spawnSync('curl', ['-s', '-L', '--max-time', '20', '-b', cookieFile, '-A', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', url], { timeout: 25000, encoding: 'utf8' });\n    html = cr.stdout || '';\n  } catch(e) {\n    continue;\n  }\n\n  // Parse item cards: href=\"/p/slug/oid\" immediately followed by <h6>Title</h6>\n  const pattern = /href=\"(\\/p\\/[^\"]+\\/(\\d+))\"[^>]*><h6[^>]*>([^<]+)<\\/h6>/g;\n  let m;\n  while ((m = pattern.exec(html)) !== null) {\n    const href  = m[1];\n    const oid   = m[2];\n    const title = decodeHtml(m[3]).trim();\n    totalFound++;\n\n    if (!oid || seen.has(oid))            continue;\n    if (already.has(oid))                 continue;\n    if (removed.has(oid))                 continue;\n    if (!matchesKeyword(title, keywords)) continue;\n\n    seen.add(oid);\n    newItems.push({\n      oid,\n      title: title.substring(0, 60),\n      url:   'https://www.nellisauction.com' + href,\n      retail: '?',\n    });\n  }\n}\n\nfs.writeFileSync(TMP_FILE, JSON.stringify(newItems), 'utf8');\n\nreturn [{ json: { newItems, newCount: newItems.length, totalFound, searchCount: searches.length, tmpFile: TMP_FILE, statePath: STATE_PATH } }];\n",
+            "mode": "runOnceForAllItems"
+          }
+        },
+        {
+          "id": "aa005",
+          "name": "Playwright: Favorite Items",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            1080,
+            300
+          ],
+          "parameters": {
+            "jsCode": "\nconst fs      = require('fs');\nconst { spawn } = require('child_process');\n\nconst newCount = $('Search & Filter').first().json.newCount;\nconst tmpFile  = 'C:\\\\Users\\\\RAGU\\\\AppData\\\\Local\\\\Temp\\\\nellis_n8n_items.json';\n\nif (newCount === 0) {\n  return [{ json: { stdout: '{\"added\":[],\"failed\":[]}', background: false } }];\n}\n\n// Spawn detached \u00e2\u20ac\u201d returns immediately, no timeout risk\nconst proc = spawn(\n  'python',\n  ['C:\\\\Users\\\\RAGU\\\\nellis_playwright.py', tmpFile, '--notify'],\n  { detached: true, stdio: 'ignore', windowsHide: true }\n);\nproc.unref();\n\nreturn [{ json: { stdout: JSON.stringify({ spawned: true, pid: proc.pid, items: newCount }), background: true } }];\n",
+            "mode": "runOnceForAllItems"
+          }
+        },
+        {
+          "id": "aa006",
+          "name": "Update State & Format Message",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            1300,
+            300
+          ],
+          "parameters": {
+            "jsCode": "\nconst fs        = require('fs');\nconst STATE_PATH = 'C:\\\\Users\\\\RAGU\\\\nellis_data\\\\state.json';\nconst TMP_FILE   = 'C:\\\\Users\\\\RAGU\\\\AppData\\\\Local\\\\Temp\\\\nellis_n8n_items.json';\n\nconst searchData = $('Search & Filter').first().json;\nconst pwData     = $input.first().json;\nconst rawStdout  = pwData.stdout || '{}';\nconst background = pwData.background === true;\n\nlet added = [], failed = [];\ntry {\n  const parsed = JSON.parse(rawStdout);\n  if (parsed.spawned) {\n    // Background mode: read tmp file to know what was queued\n    const queued = fs.existsSync(TMP_FILE) ? JSON.parse(fs.readFileSync(TMP_FILE, 'utf8')) : [];\n    const state  = fs.existsSync(STATE_PATH) ? JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')) : { favorited: {}, removed_ids: [] };\n    // Don't update state here \u00e2\u20ac\u201d nellis_playwright.py --notify will do it directly\n    const msg = `Nellis Auto-Favorite\\nSearches: ${searchData.searchCount} | Found: ${searchData.totalFound} | Matched: ${searchData.newCount}\\nFavoriting ${queued.length} item(s) in background (PID ${parsed.pid})`;\n    return [{ json: { message: msg, addedCount: queued.length, hasError: false } }];\n  }\n  added  = parsed.added  || [];\n  failed = parsed.failed || [];\n} catch(e) {\n  failed = [{ reason: 'parse error: ' + rawStdout.substring(0, 100) }];\n}\n\n// Inline (non-background) path: update state directly\nconst newItems = searchData.newItems || [];\nconst state    = fs.existsSync(STATE_PATH) ? JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')) : { favorited: {}, removed_ids: [] };\nstate.favorited = state.favorited || {};\nstate.last_run  = new Date().toISOString();\n\nlet addedCount = 0;\nfor (const item of newItems) {\n  const wasAdded = added.find(a => a.oid === item.oid && !a.skipped);\n  if (wasAdded) {\n    state.favorited[item.oid] = { title: item.title, url: item.url, retail: item.retail, added_at: new Date().toISOString() };\n    addedCount++;\n  }\n}\n\nfs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2), 'utf8');\n\nconst skipped = added.filter(a => a.skipped).length;\nconst msg = `Nellis Auto-Favorite\\nSearches: ${searchData.searchCount} | Found: ${searchData.totalFound} | Matched: ${searchData.newCount}\\nAdded: ${addedCount} | Already saved: ${skipped} | Failed: ${failed.length}\\n`;\nreturn [{ json: { message: msg, addedCount, hasError: failed.length > 0 } }];\n",
+            "mode": "runOnceForAllItems"
+          }
+        },
+        {
+          "id": "aa007",
+          "name": "Telegram Notification",
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "position": [
+            1520,
+            300
+          ],
+          "parameters": {
+            "chatId": "7874220687",
+            "text": "={{ $json.message }}",
+            "additionalFields": {}
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "Koo3vO2lxkcsOThw",
+              "name": "RaguSNellisbot"
+            }
+          }
+        }
+      ],
+      "connections": {
+        "Daily 5PM Trigger": {
+          "main": [
+            [
+              {
+                "node": "Load Config",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Load Config": {
+          "main": [
+            [
+              {
+                "node": "Search & Filter",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter & Deduplicate": {
+          "main": [
+            [
+              {
+                "node": "Playwright: Favorite Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Playwright: Favorite Items": {
+          "main": [
+            [
+              {
+                "node": "Update State & Format Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update State & Format Message": {
+          "main": [
+            [
+              {
+                "node": "Telegram Notification",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Search & Filter": {
+          "main": [
+            [
+              {
+                "node": "Playwright: Favorite Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1",
+        "callerPolicy": "workflowsFromSameOwner",
+        "availableInMCP": false
+      },
+      "pinData": {},
+      "createdAt": "2026-03-27 14:23:27.457",
+      "updatedAt": "2026-03-30 03:49:43.598"
+    },
+    {
+      "id": "R6U4EajW97Sl0Jhl",
+      "name": "Nellis Watchlist Reminder",
+      "description": null,
+      "active": true,
+      "nodes": [
+        {
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "expression": "55 17 * * *"
+                }
+              ]
+            }
+          },
+          "id": "bb000001-0000-0000-0000-000000000001",
+          "name": "5:55PM Trigger",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "position": [
+            240,
+            304
+          ]
+        },
+        {
+          "parameters": {
+            "jsCode": "\nconst fs = require('fs');\nconst STATE_PATH   = 'C:\\\\Users\\\\RAGU\\\\nellis_data\\\\state.json';\nconst BID_MAP_PATH = 'C:\\\\Users\\\\RAGU\\\\nellis_bid_map.json';\nconst PENDING_PATH = 'C:\\\\Users\\\\RAGU\\\\nellis_data\\\\bid_pending.json';\n\nconst state = fs.existsSync(STATE_PATH)\n  ? JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'))\n  : { favorited: {} };\n\nconst favs = Object.entries(state.favorited || {});\n\n// Build bid map for daemon to use later\nconst bidMap = {};\nfavs.forEach(([oid, item], i) => {\n  bidMap[String(i + 1)] = { oid, title: item.title || oid, url: item.url || '', retail: item.retail ?? '?' };\n});\nfs.writeFileSync(BID_MAP_PATH, JSON.stringify(bidMap, null, 2), 'utf8');\n\n// Save pending confirmation flag\nfs.writeFileSync(PENDING_PATH, JSON.stringify({ pending: true, sent_at: new Date().toISOString() }), 'utf8');\n\nconst count = favs.length;\nlet msg = 'Nellis \u2014 Bidding starts soon\\n\\n';\nif (count === 0) {\n  msg += 'Watchlist is empty \u2014 nothing to bid on tonight.';\n} else {\n  msg += `${count} item(s) on watchlist. Bid $5 on all unless you replied overrides earlier.\\n\\n`;\n  favs.forEach(([oid, item], i) => {\n    const retail = item.retail && item.retail !== '?' ? ` ($${item.retail} retail)` : '';\n    msg += `${i + 1}. ${(item.title || oid).substring(0, 50)}${retail}\\n`;\n  });\n  msg += '\\nProceed with bidding?';\n}\n\nreturn [{ json: { message: msg, count } }];\n"
+          },
+          "id": "bb000002-0000-0000-0000-000000000002",
+          "name": "Build Reminder",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            480,
+            304
+          ]
+        },
+        {
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot8750565636:AAGpWfoQ9lzfz6PtWGyXBhsHbVviXBTmLYc/sendMessage",
+            "sendBody": true,
+            "contentType": "form-urlencoded",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "chat_id",
+                  "value": "7874220687"
+                },
+                {
+                  "name": "text",
+                  "value": "={{ $json.message }}"
+                },
+                {
+                  "name": "reply_markup",
+                  "value": "{\"inline_keyboard\":[[{\"text\":\"YES - Bid on everything\",\"callback_data\":\"bid_yes\"},{\"text\":\"NO - Skip today\",\"callback_data\":\"bid_no\"}]]}"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "id": "bb000003-0000-0000-0000-000000000003",
+          "name": "Send YES/NO Buttons",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [
+            720,
+            304
+          ]
+        }
+      ],
+      "connections": {
+        "5:30PM Trigger": {
+          "main": [
+            [
+              {
+                "node": "Build Reminder",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Reminder": {
+          "main": [
+            [
+              {
+                "node": "Send YES/NO Buttons",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "5:55PM Trigger": {
+          "main": [
+            [
+              {
+                "node": "Build Reminder",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1",
+        "callerPolicy": "workflowsFromSameOwner",
+        "availableInMCP": false,
+        "binaryMode": "separate"
+      },
+      "pinData": {},
+      "createdAt": "2026-03-27 15:24:38.512",
+      "updatedAt": "2026-03-29 02:33:29.833"
+    },
+    {
+      "id": "Xr7emDJQELYST6uI",
+      "name": "Nellis Bid Scheduler",
+      "description": null,
+      "active": false,
+      "nodes": [
+        {
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "expression": "0 18 * * *"
+                }
+              ]
+            },
+            "options": {
+              "timezone": "America/Chicago"
+            }
+          },
+          "id": "cc000001-0000-0000-0000-000000000001",
+          "name": "6PM Trigger",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "position": [
+            240,
+            300
+          ]
+        },
+        {
+          "parameters": {
+            "jsCode": "const { spawn } = require('child_process');\n\n// Spawn bid daemon as a fully detached background process\nconst proc = spawn('python', ['C:\\\\Users\\\\RAGU\\\\nellis_bid_daemon.py'], {\n  detached: true,\n  stdio: 'ignore',\n  windowsHide: true,\n});\nproc.unref();\n\nconst started = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Chicago' });\nreturn [{ json: { status: 'Bid daemon spawned', pid: proc.pid, startedAt: started } }];"
+          },
+          "id": "cc000002-0000-0000-0000-000000000002",
+          "name": "Spawn Bid Daemon",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            480,
+            300
+          ]
+        },
+        {
+          "parameters": {
+            "jsCode": "const started = $input.first().json.startedAt;\nconst pid     = $input.first().json.pid;\nconst msg = `Nellis Bid Daemon started at ${started}\n`\n          + `Fetching watchlist close times and scheduling bids 20s before each auction ends.\n`\n          + `You'll get a notification for each bid placed.`;\nreturn [{ json: { message: msg } }];"
+          },
+          "id": "cc000003-0000-0000-0000-000000000003",
+          "name": "Format Notify",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            720,
+            300
+          ]
+        },
+        {
+          "parameters": {
+            "chatId": "7874220687",
+            "text": "={{ $json.message }}",
+            "additionalFields": {}
+          },
+          "id": "cc000004-0000-0000-0000-000000000004",
+          "name": "Telegram Bid Start",
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "position": [
+            960,
+            300
+          ],
+          "credentials": {
+            "telegramApi": {
+              "id": "Koo3vO2lxkcsOThw",
+              "name": "RaguSNellisbot"
+            }
+          }
+        }
+      ],
+      "connections": {
+        "6PM Trigger": {
+          "main": [
+            [
+              {
+                "node": "Spawn Bid Daemon",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Spawn Bid Daemon": {
+          "main": [
+            [
+              {
+                "node": "Format Notify",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format Notify": {
+          "main": [
+            [
+              {
+                "node": "Telegram Bid Start",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1",
+        "callerPolicy": "workflowsFromSameOwner",
+        "availableInMCP": false
+      },
+      "pinData": {},
+      "createdAt": "2026-03-27 15:24:38.592",
+      "updatedAt": "2026-03-28 16:54:12.000"
+    },
+    {
+      "id": "BVtIu2In6g6RgOSb",
+      "name": "Nellis Telegram Bot",
+      "description": null,
+      "active": true,
+      "nodes": [
+        {
+          "id": "nb001",
+          "name": "Poll Every 30s",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "typeVersion": 1.2,
+          "position": [
+            200,
+            300
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "seconds",
+                  "secondsInterval": 30
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "nb002",
+          "name": "Read Offset",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [
+            420,
+            300
+          ],
+          "parameters": {
+            "method": "GET",
+            "url": "http://127.0.0.1:9999/offset",
+            "responseFormat": "json"
+          }
+        },
+        {
+          "id": "nb002a",
+          "name": "Parse & Increment Offset",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            520,
+            300
+          ],
+          "parameters": {
+            "jsCode": "const offset = $input.first().json.offset || 0;\nreturn [{ json: { offset: offset + 1 } }];",
+            "mode": "runOnceForAllItems"
+          }
+        },
+        {
+          "id": "nb003",
+          "name": "Get Updates",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [
+            640,
+            300
+          ],
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.telegram.org/bot8750565636:AAGpWfoQ9lzfz6PtWGyXBhsHbVviXBTmLYc/getUpdates",
+            "sendBody": true,
+            "contentType": "json",
+            "options": {},
+            "jsonBody": "={\"offset\": {{ $json.offset }}, \"limit\": 100, \"timeout\": 5, \"allowed_updates\": [\"message\", \"callback_query\"]}",
+            "specifyBody": "json"
+          }
+        },
+        {
+          "id": "nb004",
+          "name": "Process Commands",
+          "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2,
+          "position": [
+            860,
+            300
+          ],
+          "parameters": {
+            "method": "POST",
+            "url": "http://127.0.0.1:10000",
+            "sendBody": true,
+            "bodyParameters": [
+              {
+                "name": "updates",
+                "value": "={{ $json.result }}"
+              }
+            ],
+            "responseFormat": "json"
+          }
+        },
+        {
+          "id": "nb005",
+          "name": "Send Reply",
+          "type": "n8n-nodes-base.telegram",
+          "typeVersion": 1.2,
+          "position": [
+            1080,
+            300
+          ],
+          "parameters": {
+            "chatId": "={{ $json.chat_id }}",
+            "text": "={{ $json.text }}",
+            "additionalFields": {}
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "Koo3vO2lxkcsOThw",
+              "name": "RaguSNellisbot"
+            }
+          }
+        },
+        {
+          "id": "nb004b",
+          "name": "Filter Replies",
+          "type": "n8n-nodes-base.code",
+          "typeVersion": 2,
+          "position": [
+            1050,
+            300
+          ],
+          "parameters": {
+            "jsCode": "const replies = $input.first().json.replies || [];\nif (!replies || replies.length === 0) return [];\nreturn replies.map(r => ({ json: r }));",
+            "mode": "runOnceForAllItems"
+          }
+        }
+      ],
+      "connections": {
+        "Poll Every 30s": {
+          "main": [
+            [
+              {
+                "node": "Read Offset",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Read Offset": {
+          "main": [
+            [
+              {
+                "node": "Parse & Increment Offset",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse & Increment Offset": {
+          "main": [
+            [
+              {
+                "node": "Get Updates",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get Updates": {
+          "main": [
+            [
+              {
+                "node": "Process Commands",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Process Commands": {
+          "main": [
+            [
+              {
+                "node": "Filter Replies",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send Reply": {
+          "main": [
+            []
+          ]
+        },
+        "Filter Replies": {
+          "main": [
+            [
+              {
+                "node": "Send Reply",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      },
+      "settings": {
+        "executionOrder": "v1",
+        "callerPolicy": "workflowsFromSameOwner",
+        "availableInMCP": false,
+        "binaryMode": "separate"
+      },
+      "pinData": {},
+      "createdAt": "2026-03-29 01:21:51.064",
+      "updatedAt": "2026-03-30 17:08:04.004"
+    }
+  ]
+}
