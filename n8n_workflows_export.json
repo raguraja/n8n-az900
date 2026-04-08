@@ -197,7 +197,7 @@
         },
         {
           "parameters": {
-            "jsCode": "const update = $input.first().json;\n\nlet text = '';\nlet chatId = '';\n\nif (update.message) {\n  text = (update.message.text || '').trim();\n  chatId = String(update.message.chat.id);\n} else if (update.callback_query) {\n  text = (update.callback_query.data || '').trim();\n  chatId = String(update.callback_query.message.chat.id);\n}\n\nif (chatId !== '7874220687') return [];\nif (!text) return [];\n\nreturn [{ json: { text, chatId } }];"
+            "jsCode": "const update = $input.first().json;\n\nlet text = '';\nlet chatId = '';\n\nif (update.message) {\n  text = (update.message.text || '').trim();\n  chatId = String(update.message.chat.id);\n} else if (update.callback_query) {\n  text = (update.callback_query.data || '').trim();\n  chatId = String(update.callback_query.message.chat.id);\n}\n\nif (chatId !== 'YOUR_TELEGRAM_CHAT_ID') return [];\nif (!text) return [];\n\nreturn [{ json: { text, chatId } }];"
           },
           "id": "az900-ans-02",
           "name": "Extract Message",
@@ -263,7 +263,7 @@
         },
         {
           "parameters": {
-            "chatId": "7874220687",
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
             "text": "={{ $json.output }}",
             "additionalFields": {}
           },
@@ -497,7 +497,7 @@
             300
           ],
           "parameters": {
-            "chatId": "7874220687",
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
             "text": "={{ $json.message }}",
             "additionalFields": {}
           },
@@ -635,7 +635,7 @@
               "parameters": [
                 {
                   "name": "chat_id",
-                  "value": "7874220687"
+                  "value": "YOUR_TELEGRAM_CHAT_ID"
                 },
                 {
                   "name": "text",
@@ -761,7 +761,7 @@
         },
         {
           "parameters": {
-            "chatId": "7874220687",
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
             "text": "={{ $json.message }}",
             "additionalFields": {}
           },

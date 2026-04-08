@@ -1,6 +1,6 @@
 # n8n Workflow Deployment Status
 **Date**: 2026-03-31  
-**System**: ragun8n (Fedora 43, 172.18.9.76)
+**System**: ragun8n (Fedora 43, YOUR_SERVER_IP)
 
 ## DEPLOYMENT COMPLETE ✅
 
@@ -33,7 +33,7 @@ All workflows are **correctly configured in the database** with proper relations
 
 **Shared Workflows**: 7 entries
 - All assigned to project: LNTw0sDBKLaDxonr
-- All owned by user: raguraja90@gmail.com
+- All owned by user: YOUR_EMAIL
 - Role: workflow:owner
 
 **Database Migrations**: 148/148 ✅
@@ -57,7 +57,7 @@ WHERE sw.role = 'workflow:owner'
 - ✅ All data persistence: Working correctly
 
 **n8n UI Issue**:
-- ❌ Workflows not displaying in web UI (http://172.18.9.76:5678)
+- ❌ Workflows not displaying in web UI (http://YOUR_SERVER_IP:5678)
 - ❌ Startup logs show "Processed 0 published workflows" despite DB containing 7
 - ❌ API authentication returning 401 errors
 
@@ -105,7 +105,7 @@ n8n v2.14.2 has a startup initialization issue where:
 ### Service Locations
 
 ```
-n8n Web UI:           http://172.18.9.76:5678
+n8n Web UI:           http://YOUR_SERVER_IP:5678
 Ollama:               http://127.0.0.1:11434
 Telegram Token:       YOUR_TELEGRAM_BOT_TOKEN
 AZ-900 Scheduler:     /home/ragu/az900_scheduler.py
